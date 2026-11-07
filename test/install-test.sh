@@ -6,6 +6,8 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 require_command jq
 
 export HOME="$tmpdir/home" CALLS="$tmpdir/calls" PATH="$tmpdir/bin:$PATH"
+# English unless a test picks a language, whatever the machine's own is.
+export OMARCHY_LANGUAGE_FILE="$tmpdir/language"
 mkdir -p "$tmpdir/bin" "$HOME/.config/hypr"
 for command in hyprctl omarchy omarchy-shell omarchy-notification-send; do
   printf '#!/usr/bin/env bash\nprintf "%%s\\n" "$(basename "$0") $*" >>"$CALLS"\n' >"$tmpdir/bin/$command"
@@ -54,6 +56,22 @@ sed -i 's/\$(\([^)]*\) status) == classic/-f old-flag/' "$menu"
 ! grep -q 'old-flag' "$menu" && [[ $(grep -c "BEGIN $id" "$menu") == 1 ]] || fail "older entries are replaced, once"
 ls "$menu".bak.* >/dev/null || fail "the menu is backed up before replacing"
 pass "install replaces an older install's menu entries"
+
+labels() { sed -n "/BEGIN $id/,/END $id/p" "$menu" | grep -o '"\(label\|description\)":"[^"]*"'; }
+grep -qF '"label":"Workspaces","when"' "$menu" || fail "the labels are English by default" "$(labels)"
+echo fr >"$OMARCHY_LANGUAGE_FILE"
+"$plugin/bin/install" --yes >/dev/null
+grep -qF '"label":"Espaces de travail","searchTerms":["Workspaces"]' "$menu" || fail "a reinstall writes the labels in the picked language" "$(labels)"
+grep -qF "\"description\":\"Un seul ensemble global d'espaces de travail 1-10\"" "$menu" || fail "descriptions are translated too" "$(labels)"
+[[ $(grep -c "BEGIN $id" "$menu") == 1 ]] || fail "the translated entries replace the English ones"
+{ echo '{'; sed -n "/BEGIN $id/,/END $id/p" "$menu" | sed '1d;$d' | sed '$ s/,$//'; echo '}'; } | jq -e . >/dev/null || fail "the translated entries are valid JSON"
+echo es-MX >"$OMARCHY_LANGUAGE_FILE"
+"$plugin/bin/install" --yes >/dev/null
+grep -qF '"label":"Espacios de trabajo"' "$menu" || fail "a regional language falls back to its base" "$(labels)"
+rm -f "$OMARCHY_LANGUAGE_FILE"
+"$plugin/bin/install" --yes >/dev/null
+grep -qF '"label":"Workspaces","when"' "$menu" || fail "back in English, the search term goes too" "$(labels)"
+pass "the menu entries follow the language picked when install runs"
 
 printf '  "user.entry": {"label":"Mine"},\n' >"$tmpdir/user"
 sed -i "1r $tmpdir/user" "$menu"

@@ -22,6 +22,7 @@ confirm() {
 }
 dir="$(cd "$(dirname "$0")/.." && pwd)"
 id="$(jq -r .id "$dir/manifest.json")"
+source "$dir/lib/i18n.sh"
 conf="$HOME/.config/hypr/hyprland.lua"
 menu="$HOME/.config/omarchy/extensions/omarchy-menu.jsonc"
 stamp="$(date +%s)"
@@ -48,12 +49,30 @@ if [[ ! -f $menu ]]; then
 fi
 # The checkmarks follow the mode Hyprland applied (bin/mode status), not the
 # raw flag. An older install's entries are replaced.
+# Omarchy translates only its own menu rows, so the labels are written in the
+# current language; running install again after a language change rewrites
+# them. A translated row keeps its English label as a search term.
 mode="\$HOME/.config/omarchy/plugins/$id/bin/mode"
 when="[[ -x $mode ]]"
+row() {
+  local key=$1 icon=$2 label=$3 description=$4 checked=${5:-} action=${6:-}
+  local english
+  english="$(language=en t "$label")"
+  label="$(t "$label")"
+  [[ -n $description ]] && description="$(t "$description")"
+  jq -rn --arg key "$key" --arg icon "$icon" --arg label "$label" --arg english "$english" \
+    --arg description "$description" --arg when "$when" --arg checked "$checked" --arg action "$action" '
+    {icon: $icon, label: $label}
+    + (if $label != $english then {searchTerms: [$english]} else {} end)
+    + (if $description != "" then {description: $description} else {} end)
+    + {when: $when}
+    + (if $checked != "" then {checked: $checked, action: $action} else {} end)
+    | "  \($key | tojson): \(tojson),"'
+}
 entries="  // BEGIN $id
-  \"setup.workspaces\": {\"icon\":\"󱂬\",\"label\":\"Workspaces\",\"when\":\"$when\"},
-  \"setup.workspaces.classic\": {\"icon\":\"󰕰\",\"label\":\"Classic\",\"description\":\"One global set of workspaces 1-10\",\"when\":\"$when\",\"checked\":\"[[ \$($mode status) == classic ]]\",\"action\":\"$mode classic\"},
-  \"setup.workspaces.per-monitor\": {\"icon\":\"󰍹\",\"label\":\"4.5 Workspaces\",\"description\":\"Each monitor has its own workspaces 1-10\",\"when\":\"$when\",\"checked\":\"[[ \$($mode status) == 4.5 ]]\",\"action\":\"$mode 4.5\"},
+$(row setup.workspaces 󱂬 menu.workspaces "")
+$(row setup.workspaces.classic 󰕰 menu.classic menu.classicDescription "[[ \$($mode status) == classic ]]" "$mode classic")
+$(row setup.workspaces.per-monitor 󰍹 menu.perMonitor menu.perMonitorDescription "[[ \$($mode status) == 4.5 ]]" "$mode 4.5")
   // END $id"
 current_entries="$(sed -n "/BEGIN ${id//./\\.}\$/,/END ${id//./\\.}\$/p" "$menu")"
 if [[ $current_entries != "$entries" ]]; then

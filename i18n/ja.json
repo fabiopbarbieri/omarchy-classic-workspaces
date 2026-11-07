@@ -7,5 +7,10 @@
   "notify.classic": "ワークスペース：Classic",
   "notify.perMonitor": "ワークスペース：4.5 Workspaces",
   "notify.reloadFailed": "Hyprland を再読み込みできませんでした。ワークスペースモードは変更されていません",
-  "notify.notSwitched": "Hyprland が %1 に切り替わりませんでした（hyprctl configerrors を確認してください）。ワークスペースモードは変更されていません"
+  "notify.notSwitched": "Hyprland が %1 に切り替わりませんでした（hyprctl configerrors を確認してください）。ワークスペースモードは変更されていません",
+  "menu.workspaces": "ワークスペース",
+  "menu.classic": "Classic",
+  "menu.classicDescription": "全モニター共通のワークスペース 1-10",
+  "menu.perMonitor": "4.5 Workspaces",
+  "menu.perMonitorDescription": "モニターごとに専用のワークスペース 1-10"
 }

@@ -37,7 +37,7 @@ omarchy plugin update io.github.fabiopbarbieri.classic-workspaces
 ~/.config/omarchy/plugins/io.github.fabiopbarbieri.classic-workspaces/bin/install
 ```
 
-Run `install` again after each update: it replaces menu entries from an older version (backing the menu up first).
+Run `install` again after each update, and after changing Setup > Language: it replaces menu entries from an older version or another language (backing the menu up first).
 
 The install script appends a marked block to the end of `~/.config/hypr/hyprland.lua` and adds Setup > Workspaces to `~/.config/omarchy/extensions/omarchy-menu.jsonc` (backing both up first), and replaces the bar's workspace widget. It doesn't change the mode.
 
@@ -71,6 +71,6 @@ test/run
 
 Needs `lua`, `node` and `jq`; nothing touches the running desktop. The Lua part runs against a small model of Hyprland (`test/fake-hyprland.lua`), and also on top of Omarchy's own `monitor-workspaces.lua` when Omarchy is installed. Known gaps print `# TODO` and are listed in `TODO.md`.
 
-Strings, for the bar and `bin/mode`'s notifications, are in `i18n/` (English, Brazilian Portuguese, Spanish, French, Japanese, Simplified and Traditional Chinese) and follow Setup > Language. The Setup > Workspaces menu entries stay in English.
+Strings, for the bar, `bin/mode`'s notifications and the Setup > Workspaces menu entries, are in `i18n/` (English, Brazilian Portuguese, Spanish, French, Japanese, Simplified and Traditional Chinese) and follow Setup > Language. Omarchy translates only its own menu rows, so `install` writes the entries in the language picked when it runs; a translated entry still matches its English name in the menu search.
 
 MIT licensed. `Workspaces.qml` is Omarchy 4.5's widget with the global-mode change from #16213; Omarchy's copyright notice is kept in `LICENSE`.

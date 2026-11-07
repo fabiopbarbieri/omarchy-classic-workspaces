@@ -7,5 +7,10 @@
   "notify.classic": "Espaces de travail : Classic",
   "notify.perMonitor": "Espaces de travail : 4.5 Workspaces",
   "notify.reloadFailed": "Impossible de recharger Hyprland ; le mode des espaces de travail n'a pas changé",
-  "notify.notSwitched": "Hyprland n'est pas passé à %1 (voir hyprctl configerrors) ; le mode des espaces de travail n'a pas changé"
+  "notify.notSwitched": "Hyprland n'est pas passé à %1 (voir hyprctl configerrors) ; le mode des espaces de travail n'a pas changé",
+  "menu.workspaces": "Espaces de travail",
+  "menu.classic": "Classic",
+  "menu.classicDescription": "Un seul ensemble global d'espaces de travail 1-10",
+  "menu.perMonitor": "4.5 Workspaces",
+  "menu.perMonitorDescription": "Chaque écran a ses propres espaces de travail 1-10"
 }

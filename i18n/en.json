@@ -7,5 +7,10 @@
   "notify.classic": "Workspaces: Classic",
   "notify.perMonitor": "Workspaces: 4.5 Workspaces",
   "notify.reloadFailed": "Could not reload Hyprland; workspace mode was not changed",
-  "notify.notSwitched": "Hyprland didn't switch to %1 (see hyprctl configerrors); workspace mode was not changed"
+  "notify.notSwitched": "Hyprland didn't switch to %1 (see hyprctl configerrors); workspace mode was not changed",
+  "menu.workspaces": "Workspaces",
+  "menu.classic": "Classic",
+  "menu.classicDescription": "One global set of workspaces 1-10",
+  "menu.perMonitor": "4.5 Workspaces",
+  "menu.perMonitorDescription": "Each monitor has its own workspaces 1-10"
 }
