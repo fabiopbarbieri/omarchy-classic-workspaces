@@ -5,6 +5,8 @@ A switch for Omarchy 4.5 between two workspace modes:
 - **Classic**: one global set of workspaces 1-10, as before [omacom/omarchy#15655](https://github.com/omacom/omarchy/pull/15655) (Omarchy 4.0.6). `Super + N` goes to workspace N on whichever monitor holds it, and focus and the mouse follow.
 - **4.5 Workspaces**: Omarchy 4.5's per-monitor workspaces, untouched.
 
+![The mode icon after the workspace numbers opens a card with the Classic toggle](preview.png)
+
 Pick one from the mode icon at the end of the workspace numbers in the bar (it opens a small card with a Classic toggle), from **Setup > Workspaces** in the Omarchy menu, or run `bin/mode classic`, `bin/mode 4.5`, `bin/mode toggle` or `bin/mode status`. Switching reloads Hyprland; nothing else restarts.
 
 ## What Classic changes
