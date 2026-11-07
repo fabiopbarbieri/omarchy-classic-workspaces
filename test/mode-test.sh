@@ -31,11 +31,24 @@ case $1 in
     [[ $2 == cursor:no_warps ]] && echo '{"bool": false}'
     ;;
   cursorpos) echo "120, 340" ;;
+  clients)
+    # With RENUMBER, Omarchy's 4.5 renumbers as it reloads: 5 -> 25, and one
+    # of 3's two windows goes to 13, so 3 isn't one workspace renumbered.
+    state="${XDG_STATE_HOME:-$HOME/.local/state}/omarchy"
+    if [[ -n ${RENUMBER:-} && $(cat "$state/classic-workspaces/applied" 2>/dev/null) == 4.5 ]]; then
+      echo '[{"address":"0xa","workspace":{"id":25}},{"address":"0xb","workspace":{"id":13}},{"address":"0xc","workspace":{"id":3}},{"address":"0xd","workspace":{"id":1}},{"address":"0xe","workspace":{"id":-98}}]'
+    else
+      echo '[{"address":"0xa","workspace":{"id":5}},{"address":"0xb","workspace":{"id":3}},{"address":"0xc","workspace":{"id":3}},{"address":"0xd","workspace":{"id":1}},{"address":"0xe","workspace":{"id":-98}}]'
+    fi ;;
   eval)
     # Stands in for compact moving a saved layout.
     if [[ -n ${MOVE_LAYOUT:-} && $2 == *compact* ]]; then
       mkdir -p "$XDG_STATE_HOME/omarchy/workspace-layouts"
       touch "$XDG_STATE_HOME/omarchy/workspace-layouts/3.lua"
+    fi
+    if [[ -n ${MOVE_LAYOUT:-} && $2 == *move_layouts* ]]; then
+      mkdir -p "$XDG_STATE_HOME/omarchy/workspace-layouts"
+      touch "$XDG_STATE_HOME/omarchy/workspace-layouts/25.lua"
     fi ;;
 esac
 exit 0
@@ -134,6 +147,24 @@ MOVE_LAYOUT=1 "$mode" classic
 "$mode" 4.5
 rm -rf "$XDG_STATE_HOME/omarchy/workspace-layouts"
 pass "Hyprland reloads again only when compact moved a saved layout"
+
+"$mode" classic
+: >"$CALLS"
+"$mode" 4.5
+! grep -q move_layouts "$CALLS" || fail "nothing to move when Omarchy renumbered nothing"
+"$mode" classic
+: >"$CALLS"
+RENUMBER=1 "$mode" 4.5
+grep -qF 'o.classic_workspaces.move_layouts({ [5] = 25, })' "$CALLS" || fail "going to 4.5, the layouts follow the windows" "$(grep eval "$CALLS")"
+[[ $(grep -cx reload "$CALLS") == 1 ]] || fail "no second reload when no file changed"
+"$mode" classic
+: >"$CALLS"
+RENUMBER=1 MOVE_LAYOUT=1 "$mode" 4.5
+[[ $(grep -cx reload "$CALLS") == 2 ]] || fail "a second reload applies the moved layouts"
+"$mode" classic
+"$mode" 4.5
+rm -rf "$XDG_STATE_HOME/omarchy/workspace-layouts"
+pass "going to 4.5, saved layouts follow the workspaces Omarchy renumbered"
 
 XDG_RUNTIME_DIR='' "$mode" classic
 [[ -f $flag ]] || fail "switching works without XDG_RUNTIME_DIR"

@@ -332,3 +332,46 @@ check(read(state("omarchy/workspace-layouts/classic-workspaces-set-aside/7.lua")
 check(not exists(state("omarchy/workspace-layouts/1.lua")) and not exists(state("omarchy/workspace-layouts/5.lua")), "1 and 5 now hold other workspaces, so their old layouts are set aside")
 ' || fail "compact on a real desktop's state moves every layout (live workspace objects)"
 pass "compact on a real desktop's state moves every layout (live workspace objects)"
+
+run_lua layouts-trade '
+classic()
+load_plugin()
+write(state("omarchy/workspace-layouts/3.lua"), "o.workspace_mode({ workspace = \"3\", mode = \"floating\" })\n")
+write(state("omarchy/workspace-layouts/13.lua"), "o.workspace_mode({ workspace = \"13\", mode = \"scrolling\" })\n")
+o.classic_workspaces.move_layouts({ [3] = 13, [13] = 3 })
+check(read(state("omarchy/workspace-layouts/3.lua")) == "o.workspace_mode({ workspace = \"3\", mode = \"scrolling\" })\n", "3 has 13\x27s layout")
+check(read(state("omarchy/workspace-layouts/13.lua")) == "o.workspace_mode({ workspace = \"13\", mode = \"floating\" })\n", "13 has 3\x27s layout")
+check(not exists(state("omarchy/workspace-layouts/classic-workspaces-set-aside/3.lua")), "nothing is set aside")
+' || fail "two workspaces that trade numbers trade layouts"
+pass "two workspaces that trade numbers trade layouts"
+
+run_lua layouts-aside-kept '
+plug("DP-1", 1)
+window("0xa", 13)
+write(state("omarchy/workspace-layouts/classic-workspaces-set-aside/3.lua"), "earlier\n")
+write(state("omarchy/workspace-layouts/3.lua"), "o.workspace_mode({ workspace = \"3\", mode = \"floating\" })\n")
+classic()
+load_plugin().compact()
+check(read(state("omarchy/workspace-layouts/classic-workspaces-set-aside/3.lua")) == "earlier\n", "the earlier one is kept")
+check(read(state("omarchy/workspace-layouts/classic-workspaces-set-aside/3.1.lua")):match("floating"), "the new one goes beside it")
+' || fail "setting a layout aside keeps what was set aside before"
+pass "setting a layout aside keeps what was set aside before"
+
+# Classic -> 4.5 -> Classic, with the moves bin/mode reads from where Omarchy
+# put the windows: 5 on the third monitor became 25, and comes back as 5.
+run_lua layouts-round-trip '
+write(state("omarchy/workspace-layouts/5.lua"), "o.workspace_mode({ workspace = \"5\", mode = \"scrolling\" })\n")
+plug("DP-1", 1)
+plug("HDMI-A-1", 25)
+window("0xa", 25, "HDMI-A-1")
+load_plugin()
+check(o.classic_workspaces, "the layout mover is there in 4.5 mode too")
+o.classic_workspaces.move_layouts({ [5] = 25 })
+check(read(state("omarchy/workspace-layouts/25.lua")):match("workspace = \"25\""), "in 4.5 the layout is under 25")
+check(not exists(state("omarchy/workspace-layouts/5.lua")), "and no longer under 5")
+classic()
+load_plugin().compact()
+check(read(state("omarchy/workspace-layouts/5.lua")) == "o.workspace_mode({ workspace = \"5\", mode = \"scrolling\" })\n", "back in Classic, 5 has it again")
+check(not exists(state("omarchy/workspace-layouts/classic-workspaces-set-aside")), "nothing is set aside")
+' || fail "a layout survives Classic -> 4.5 -> Classic"
+pass "a layout survives Classic -> 4.5 -> Classic"

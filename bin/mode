@@ -84,21 +84,50 @@ give_up() {
   exit 1
 }
 
+# Which workspace each window is on, to see what Omarchy renumbered.
+placement() {
+  hyprctl clients -j 2>/dev/null | jq -r '.[] | select(.workspace.id > 0) | "\(.address) \(.workspace.id)"' | LC_ALL=C sort -k1,1
+  true
+}
+# Omarchy renumbers as the reload finishes; wait for the windows to settle.
+settled_placement() {
+  local last now tries
+  last="$(placement)"
+  for tries in {1..10}; do
+    sleep 0.1
+    now="$(placement)"
+    [[ $now == "$last" ]] && break
+    last=$now
+  done
+  printf '%s\n' "$last"
+}
+# "[old] = new, ..." for every workspace whose windows all went to one new id.
+renumbered() {
+  LC_ALL=C join <(printf '%s\n' "$1") <(printf '%s\n' "$2") | awk '
+    { if (($2 in to) && to[$2] != $3) mixed[$2] = 1; to[$2] = $3 }
+    END { for (old in to) if (!(old in mixed) && old != to[old]) printf "[%s] = %s, ", old, to[old] }'
+}
+[[ $want == 4.5 ]] && before_placement="$(placement)"
+
 set_flag "$want"
 rm -f "$applied_file"
 hyprctl reload >/dev/null || give_up "Could not reload Hyprland; workspace mode was not changed"
 wait_applied "$want" || give_up "Hyprland didn't switch to $want (see hyprctl configerrors); workspace mode was not changed"
 
-# Compacting renumbers workspaces 11+ and takes their saved layouts along; the
-# layout files are only applied as the config loads, so reload again if any
-# changed.
+# Saved layouts are named by workspace id. Going to Classic, compact
+# renumbers workspaces 11+ and takes their layouts along; going to 4.5, Omarchy
+# renumbers them, and the layouts follow the windows. The files are only
+# applied as the config loads, so reload again if any changed.
 layouts="${XDG_STATE_HOME:-$HOME/.local/state}/omarchy/workspace-layouts"
 list_layouts() { [[ -d $layouts ]] && find "$layouts" -maxdepth 1 -name '*.lua' -printf '%f %s\n' | sort; true; }
+before="$(list_layouts)"
 if [[ $want == classic ]]; then
-  before="$(list_layouts)"
   hyprctl eval 'if o.workspaces.compact then o.workspaces.compact() end' >/dev/null || true
-  [[ $(list_layouts) == "$before" ]] || hyprctl reload >/dev/null || true
+else
+  moves="$(renumbered "$before_placement" "$(settled_placement)")"
+  [[ -z $moves ]] || hyprctl eval "if o.classic_workspaces then o.classic_workspaces.move_layouts({ $moves}) end" >/dev/null || true
 fi
+[[ $(list_layouts) == "$before" ]] || hyprctl reload >/dev/null || true
 restore_cursor
 
 if [[ $want == classic ]]; then

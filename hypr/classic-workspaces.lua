@@ -40,6 +40,76 @@ local function record(mode)
   end
 end
 
+-- Saved layouts (Super + L) are files named by workspace id, so a renumbered
+-- workspace takes its file along, and the new number's old file, left by a
+-- workspace that no longer exists, is set aside where Omarchy doesn't load it.
+-- compact uses it going to Classic, and bin/mode going to 4.5, after Omarchy
+-- renumbered; the reload bin/mode runs when the files change applies them.
+local layouts = paths.state_home .. "/omarchy/workspace-layouts"
+
+local function read_file(path)
+  local file = io.open(path, "r")
+  if not file then return nil end
+  local content = file:read("a")
+  file:close()
+  return content
+end
+
+-- Without overwriting what an earlier switch set aside.
+local function set_aside(path, id)
+  local aside = layouts .. "/classic-workspaces-set-aside"
+  os.execute("mkdir -p '" .. aside .. "'")
+  local name, n = aside .. "/" .. id .. ".lua", 1
+  while read_file(name) do
+    name = aside .. "/" .. id .. "." .. n .. ".lua"
+    n = n + 1
+  end
+  os.rename(path, name)
+end
+
+-- moves: old id -> new id. Each file is written under a name Omarchy doesn't
+-- load before any source goes, so a failed write loses nothing, and sources
+-- go before targets are checked, so two workspaces can trade numbers.
+local function move_layouts(moves)
+  local jobs, stale = {}, {}
+  for key, value in pairs(moves) do
+    local from, to = tonumber(key), tonumber(value)
+    local content = from and to and from ~= to and read_file(layouts .. "/" .. from .. ".lua")
+    local renamed, count
+    if content then
+      renamed, count = content:gsub('workspace = "' .. from .. '"', 'workspace = "' .. to .. '"')
+    end
+    -- A workspace without a layout of its own shouldn't pick up the one left
+    -- under its new number. A file that doesn't name its workspace as Omarchy
+    -- writes it stays put.
+    if from and to and from ~= to and not content then
+      stale[#stale + 1] = to
+    elseif content and count > 0 then
+      local moving = layouts .. "/." .. to .. ".lua.moving"
+      local file = io.open(moving, "w")
+      if file then
+        file:write(renamed)
+        file:close()
+        jobs[#jobs + 1] = { from = from, to = to, moving = moving }
+      end
+    end
+  end
+  for _, job in ipairs(jobs) do
+    os.remove(layouts .. "/" .. job.from .. ".lua")
+  end
+  for _, id in ipairs(stale) do
+    local target = layouts .. "/" .. id .. ".lua"
+    if read_file(target) then set_aside(target, id) end
+  end
+  for _, job in ipairs(jobs) do
+    local target = layouts .. "/" .. job.to .. ".lua"
+    if read_file(target) then set_aside(target, job.to) end
+    os.rename(job.moving, target)
+  end
+end
+
+o.classic_workspaces = { move_layouts = move_layouts }
+
 -- Omarchy's own switch (omacom/omarchy#16213) is in charge when it exists.
 if M.enabled ~= nil then
   record(M.enabled and "4.5" or "classic")
@@ -94,42 +164,6 @@ function M.move_to_monitor(direction)
   end, "o.workspaces.move_to_monitor(" .. string.format("%q", direction) .. ")")
 end
 
--- Saved layouts (Super + L) are files named by workspace id, so a renumbered
--- workspace takes its file along, and the new number's old file, left by a
--- workspace that no longer exists, is set aside where Omarchy doesn't load it.
--- Applied by the reload bin/mode runs when the files change.
-local layouts = paths.state_home .. "/omarchy/workspace-layouts"
-
-local function read_file(path)
-  local file = io.open(path, "r")
-  if not file then return nil end
-  local content = file:read("a")
-  file:close()
-  return content
-end
-
-local function move_layout(from, to)
-  local source = layouts .. "/" .. from .. ".lua"
-  local target = layouts .. "/" .. to .. ".lua"
-  local content = read_file(source)
-  local renamed = content and content:gsub('workspace = "' .. from .. '"', 'workspace = "' .. to .. '"')
-  -- A file that doesn't name its workspace as Omarchy writes it stays put.
-  if content and renamed == content then return end
-
-  if read_file(target) then
-    local aside = layouts .. "/classic-workspaces-set-aside"
-    os.execute("mkdir -p '" .. aside .. "'")
-    os.rename(target, aside .. "/" .. to .. ".lua")
-  end
-  if renamed then
-    local file = io.open(target, "w")
-    if not file then return end
-    file:write(renamed)
-    file:close()
-    os.remove(source)
-  end
-end
-
 -- Workspaces the per-monitor mode numbered 11+ are out of reach of the number
 -- keys. Renumber them into 1-10, keeping their position (13 -> 3) when free.
 -- Run by bin/mode when switching to Classic.
@@ -141,6 +175,7 @@ function M.compact()
     if not workspace.special and workspace.id > 10 then numbers[#numbers + 1] = workspace.id end
   end
   table.sort(numbers)
+  local moves = {}
   for _, from in ipairs(numbers) do
     local candidates = { (from - 1) % 10 + 1 }
     for id = 1, 10 do
@@ -149,11 +184,12 @@ function M.compact()
     for _, id in ipairs(candidates) do
       if not hl.get_workspace(id) then
         hl.dispatch(hl.dsp.workspace.change_id({ workspace = tostring(from), id = id }))
-        if hl.get_workspace(id) then move_layout(from, id) end
+        if hl.get_workspace(id) then moves[from] = id end
         break
       end
     end
   end
+  move_layouts(moves)
 end
 
 -- The bindings from before #15655 (default/hypr/bindings/tiling.lua at dd07b62).
