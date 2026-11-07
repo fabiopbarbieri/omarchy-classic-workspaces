@@ -32,6 +32,8 @@ for f in "$HOME/.config/hypr/hyprland.lua" "$HOME/.config/omarchy/extensions/oma
   sed -i "/BEGIN ${id//./\\.}\$/,/END ${id//./\\.}\$/d" "$f"
 done
 
+rm -rf "${XDG_STATE_HOME:-$HOME/.local/state}/omarchy/classic-workspaces"
+
 omarchy plugin disable "$id" || true
 omarchy plugin enable omarchy.workspaces || true
 hyprctl reload >/dev/null

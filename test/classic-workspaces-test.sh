@@ -33,20 +33,38 @@ check(next(o.bindings) == nil and m.focus == nil, "nothing is rebound")
 ' || fail "when Omarchy has its own switch (o.workspaces.enabled), the plugin steps aside"
 pass "when Omarchy has its own switch (o.workspaces.enabled), the plugin steps aside"
 
-# Item D: Omarchy's switch may read the flag somewhere else (see the comment on
-# omacom/omarchy#16213 about STATE_DIR on quattro), so Hyprland stays per
-# monitor while the bar and menu, reading the raw flag, say Classic.
-if run_lua applied-mode '
-plug("DP-1", 1)
+# The bar, menu and bin/mode read what the config load applied, which can
+# differ from the flag: Omarchy's own switch may read it elsewhere (see the
+# comment on omacom/omarchy#16213 about STATE_DIR on quattro).
+run_lua applied-mismatch '
 classic()
 load_plugin({ enabled = true })
-local applied = read(state("omarchy/classic-workspaces/applied"))
-check(applied and applied:match("^4%.5"), "the mode Hyprland applied is recorded")
-' 2>/dev/null; then
-  pass "the applied mode is recorded when Omarchy disagrees with the flag"
-else
-  todo "the applied mode is recorded when Omarchy disagrees with the flag" "item D in TODO.md"
-fi
+check(read(state("omarchy/classic-workspaces/applied")) == "4.5\n", "Omarchy kept per-monitor: 4.5 is recorded")
+' || fail "the applied mode is recorded when Omarchy disagrees with the flag"
+pass "the applied mode is recorded when Omarchy disagrees with the flag"
+
+run_lua applied-omarchy-classic '
+load_plugin({ enabled = false })
+check(read(state("omarchy/classic-workspaces/applied")) == "classic\n", "Omarchy went global: classic is recorded")
+' || fail "Omarchy's own global mode is recorded as classic"
+pass "Omarchy's own global mode is recorded as classic"
+
+run_lua applied-plugin '
+load_plugin()
+check(read(state("omarchy/classic-workspaces/applied")) == "4.5\n", "no flag: 4.5")
+classic()
+load_plugin()
+check(read(state("omarchy/classic-workspaces/applied")) == "classic\n", "flag: classic")
+' || fail "the plugin records the mode it applied"
+pass "the plugin records the mode it applied"
+
+run_lua applied-last '
+classic()
+o.rebind = function() error("a binding failed") end
+pcall(load_plugin)
+check(not exists(state("omarchy/classic-workspaces/applied")), "nothing is recorded")
+' || fail "a load that errors before the end doesn't record classic"
+pass "a load that errors before the end doesn't record classic"
 
 run_lua classic '
 plug("DP-1", 1)

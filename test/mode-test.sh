@@ -16,7 +16,16 @@ case $1 in
   reload)
     # Whether the switching marker was there while Hyprland reloaded.
     [[ -f $XDG_RUNTIME_DIR/omarchy-classic-workspaces-switching ]] && echo marker >>"$CALLS"
-    exit "${RELOAD_FAILURE:-0}" ;;
+    (( ${RELOAD_FAILURE:-0} )) && exit 1
+    # What hypr/classic-workspaces.lua records: the flag's mode, or 4.5 when
+    # Omarchy's own switch ignores the flag, or nothing when the config errors.
+    (( ${CONFIG_ERROR:-0} )) && exit 0
+    state="${XDG_STATE_HOME:-$HOME/.local/state}/omarchy"
+    mode=4.5
+    [[ -f $state/toggles/no-monitor-workspaces && -z ${IGNORES_FLAG:-} ]] && mode=classic
+    mkdir -p "$state/classic-workspaces"
+    echo "$mode" >"$state/classic-workspaces/applied"
+    exit 0 ;;
   getoption)
     [[ $2 == cursor:warp_on_change_workspace ]] && echo '{"int": 2}'
     [[ $2 == cursor:no_warps ]] && echo '{"bool": false}'
@@ -84,6 +93,32 @@ if RELOAD_FAILURE=1 "$mode" 4.5 2>/dev/null; then fail "a failed reload is repor
 pass "a failed reload rolls the mode back either way"
 
 "$mode" 4.5
+: >"$CALLS"
+if CONFIG_ERROR=1 "$mode" classic 2>/dev/null; then fail "a config load that doesn't finish is reported"; fi
+[[ ! -e $flag ]] || fail "a config load that doesn't finish puts the flag back"
+grep -q "notify .*didn't switch" "$CALLS" || fail "the failure is notified, for a click on the bar"
+pass "a config load that doesn't finish rolls the mode back (reload exits 0 anyway)"
+
+: >"$CALLS"
+if IGNORES_FLAG=1 "$mode" classic 2>/dev/null; then fail "Hyprland staying per monitor is reported"; fi
+[[ ! -e $flag ]] || fail "the flag goes back when Hyprland stays per monitor"
+[[ $("$mode" status) == 4.5 ]] || fail "status reports what Hyprland applied"
+pass "when Omarchy's own switch ignores the flag, the mode is rolled back"
+
+# Hyprland applied Classic though the flag is gone (it was removed by hand):
+# status and toggle go by what is applied.
+"$mode" classic
+rm -f "$flag"
+[[ $("$mode" status) == classic ]] || fail "status follows the applied mode, not the flag"
+"$mode" toggle
+[[ $("$mode" status) == 4.5 && ! -e $flag ]] || fail "toggle leaves the applied mode"
+rm -rf "$XDG_STATE_HOME/omarchy/classic-workspaces"
+"$mode" classic
+rm -rf "$XDG_STATE_HOME/omarchy/classic-workspaces"
+[[ $("$mode" status) == classic ]] || fail "without a record yet, status falls back to the flag"
+"$mode" 4.5
+pass "status and toggle go by the applied mode, and by the flag before any is recorded"
+
 XDG_STATE_HOME='' "$mode" classic
 [[ -f $HOME/.local/state/omarchy/toggles/no-monitor-workspaces ]] || fail "an empty XDG_STATE_HOME falls back to ~/.local/state"
 XDG_STATE_HOME='' "$mode" 4.5

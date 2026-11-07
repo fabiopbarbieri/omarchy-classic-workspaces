@@ -20,14 +20,41 @@ BarWidget {
   Commons.Translations { id: strings; directory: Qt.resolvedUrl("i18n") }
   property bool perMonitorWorkspaces: true
 
+  // The mode the last config load applied, from hypr/classic-workspaces.lua,
+  // and the flag, which only counts until a mode has been recorded: Hyprland
+  // may not follow it, after a config error or under an Omarchy switch that
+  // reads it elsewhere.
+  property string appliedMode: ""
+  property bool classicFlag: false
+
+  function perMonitorFrom(applied, flag) {
+    if (applied === "classic") return false
+    if (applied === "4.5") return true
+    return !flag
+  }
+
+  function updateScope() {
+    root.setPerMonitor(root.perMonitorFrom(root.appliedMode, root.classicFlag))
+  }
+
+  FileView {
+    id: appliedScope
+    path: (Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state") + "/omarchy/classic-workspaces/applied"
+    watchChanges: true
+    printErrors: false
+    onFileChanged: reload()
+    onLoaded: { root.appliedMode = text().trim(); root.updateScope() }
+    onLoadFailed: { root.appliedMode = ""; root.updateScope() }
+  }
+
   FileView {
     id: workspaceScope
     path: (Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state") + "/omarchy/toggles/no-monitor-workspaces"
     watchChanges: true
     printErrors: false
     onFileChanged: reload()
-    onLoaded: root.setPerMonitor(false)
-    onLoadFailed: root.setPerMonitor(true)
+    onLoaded: { root.classicFlag = true; root.updateScope() }
+    onLoadFailed: { root.classicFlag = false; root.updateScope() }
   }
 
   // Switching modes renumbers workspaces, and Quickshell can keep the old
@@ -265,6 +292,7 @@ BarWidget {
     function onRawEvent(event) {
       var name = event ? String(event.name) : ""
       if (name === "configreloaded") {
+        appliedScope.reload()
         workspaceScope.reload()
         Hyprland.refreshMonitors()
         Hyprland.refreshWorkspaces()

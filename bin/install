@@ -46,16 +46,19 @@ if [[ ! -f $menu ]]; then
   mkdir -p "$(dirname "$menu")"
   printf '{\n}\n' >"$menu"
 fi
-if ! grep -q "BEGIN $id\$" "$menu"; then
-  cp "$menu" "$menu.bak.$stamp"
-  mode="\$HOME/.config/omarchy/plugins/$id/bin/mode"
-  check='${XDG_STATE_HOME:-$HOME/.local/state}/omarchy/toggles/no-monitor-workspaces'
-  when="[[ -x $mode ]]"
-  entries="  // BEGIN $id
+# The checkmarks follow the mode Hyprland applied (bin/mode status), not the
+# raw flag. An older install's entries are replaced.
+mode="\$HOME/.config/omarchy/plugins/$id/bin/mode"
+when="[[ -x $mode ]]"
+entries="  // BEGIN $id
   \"setup.workspaces\": {\"icon\":\"󱂬\",\"label\":\"Workspaces\",\"when\":\"$when\"},
-  \"setup.workspaces.classic\": {\"icon\":\"󰕰\",\"label\":\"Classic\",\"description\":\"One global set of workspaces 1-10\",\"when\":\"$when\",\"checked\":\"[[ -f $check ]]\",\"action\":\"$mode classic\"},
-  \"setup.workspaces.per-monitor\": {\"icon\":\"󰍹\",\"label\":\"4.5 Workspaces\",\"description\":\"Each monitor has its own workspaces 1-10\",\"when\":\"$when\",\"checked\":\"[[ ! -f $check ]]\",\"action\":\"$mode 4.5\"},
+  \"setup.workspaces.classic\": {\"icon\":\"󰕰\",\"label\":\"Classic\",\"description\":\"One global set of workspaces 1-10\",\"when\":\"$when\",\"checked\":\"[[ \$($mode status) == classic ]]\",\"action\":\"$mode classic\"},
+  \"setup.workspaces.per-monitor\": {\"icon\":\"󰍹\",\"label\":\"4.5 Workspaces\",\"description\":\"Each monitor has its own workspaces 1-10\",\"when\":\"$when\",\"checked\":\"[[ \$($mode status) == 4.5 ]]\",\"action\":\"$mode 4.5\"},
   // END $id"
+current_entries="$(sed -n "/BEGIN ${id//./\\.}\$/,/END ${id//./\\.}\$/p" "$menu")"
+if [[ $current_entries != "$entries" ]]; then
+  cp "$menu" "$menu.bak.$stamp"
+  sed -i "/BEGIN ${id//./\\.}\$/,/END ${id//./\\.}\$/d" "$menu"
   last=$(grep -n '^}' "$menu" | tail -1 | cut -d: -f1)
   { head -n $((last - 1)) "$menu"; printf '%s\n' "$entries"; tail -n +"$last" "$menu"; } >"$menu.tmp"
   mv "$menu.tmp" "$menu"

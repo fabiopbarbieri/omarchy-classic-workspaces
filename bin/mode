@@ -4,9 +4,24 @@
 #   4.5      Omarchy 4.5's per-monitor workspaces
 set -euo pipefail
 
-flag="${XDG_STATE_HOME:-$HOME/.local/state}/omarchy/toggles/no-monitor-workspaces"
-current=4.5
-[[ -f $flag ]] && current=classic
+state="${XDG_STATE_HOME:-$HOME/.local/state}/omarchy"
+flag="$state/toggles/no-monitor-workspaces"
+# What the last config load applied, written by hypr/classic-workspaces.lua.
+# It goes by that rather than the flag, which Hyprland may not have followed.
+applied_file="$state/classic-workspaces/applied"
+
+applied() {
+  local mode=""
+  [[ -f $applied_file ]] && read -r mode <"$applied_file"
+  [[ $mode == classic || $mode == 4.5 ]] && echo "$mode"
+  return 0
+}
+
+current="$(applied)"
+if [[ -z $current ]]; then
+  current=4.5
+  [[ -f $flag ]] && current=classic
+fi
 
 case ${1:-toggle} in
   classic | 4.5) want=$1 ;;
@@ -48,12 +63,31 @@ if [[ -n $marker ]]; then
   touch "$marker"
 fi
 
-set_flag "$want"
-if ! hyprctl reload >/dev/null; then
+# Wait for the config load to say what it applied: an error in the config, or
+# an Omarchy switch that doesn't read this flag, leaves the other mode.
+wait_applied() {
+  local tries
+  for tries in {1..20}; do
+    [[ $(applied) == "$1" ]] && return 0
+    sleep 0.1
+  done
+  return 1
+}
+
+give_up() {
   set_flag "$current"
-  echo "Could not reload Hyprland; workspace mode was not changed" >&2
+  rm -f "$applied_file"
+  hyprctl reload >/dev/null || true
+  restore_cursor
+  echo "$1" >&2
+  omarchy-notification-send -g 󱂬 "$1" || true
   exit 1
-fi
+}
+
+set_flag "$want"
+rm -f "$applied_file"
+hyprctl reload >/dev/null || give_up "Could not reload Hyprland; workspace mode was not changed"
+wait_applied "$want" || give_up "Hyprland didn't switch to $want (see hyprctl configerrors); workspace mode was not changed"
 
 # Compacting renumbers workspaces 11+ and takes their saved layouts along; the
 # layout files are only applied as the config loads, so reload again if any

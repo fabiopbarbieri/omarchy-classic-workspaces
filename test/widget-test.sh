@@ -87,5 +87,17 @@ test('labels: 10 reads 0 only in 4.5 mode, and the shown one carries its layout'
   }
 })
 
+test('the bar follows the applied mode, and the flag only before one is recorded', () => {
+  const from = (applied, flag) => {
+    const match = source.match(/\n  function perMonitorFrom\(applied, flag\) \{([\s\S]*?)\n  \}/)
+    return new Function('applied', 'flag', match[1])(applied, flag)
+  }
+  assert.strictEqual(from('classic', false), false, 'applied Classic wins over a missing flag')
+  assert.strictEqual(from('4.5', true), true, 'applied 4.5 wins over the flag (Omarchy kept per monitor)')
+  assert.strictEqual(from('', true), false, 'no record yet: the flag says Classic')
+  assert.strictEqual(from('', false), true, 'no record and no flag: 4.5')
+  assert.strictEqual(from('garbage', true), false, 'an unreadable record falls back to the flag')
+})
+
 process.exit(failed ? 1 : 0)
 JS

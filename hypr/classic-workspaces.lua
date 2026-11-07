@@ -17,18 +17,43 @@ if switching then
 end
 
 local M = o.workspaces
-if not M or M.enabled ~= nil then
+if not M then
+  return
+end
+
+local paths = require("default.hypr.paths")
+
+-- The mode this config load applied, for the bar, the menu and bin/mode,
+-- which would otherwise have only the flag to go by: a load that fails, or an
+-- Omarchy switch that reads the flag elsewhere, leaves Hyprland in the other
+-- mode. Written last, so a load that errors before the end doesn't claim it.
+local function record(mode)
+  local dir = paths.state_home .. "/omarchy/classic-workspaces"
+  local file = io.open(dir .. "/applied", "w")
+  if not file then
+    os.execute("mkdir -p '" .. dir .. "'")
+    file = io.open(dir .. "/applied", "w")
+  end
+  if file then
+    file:write(mode .. "\n")
+    file:close()
+  end
+end
+
+-- Omarchy's own switch (omacom/omarchy#16213) is in charge when it exists.
+if M.enabled ~= nil then
+  record(M.enabled and "4.5" or "classic")
   return
 end
 
 -- Toggleable: only with the flag (the same one #16213 reads) is anything
 -- reverted. Without it, Omarchy's per-monitor workspaces run untouched.
-local paths = require("default.hypr.paths")
 local flag = io.open(paths.state_home .. "/omarchy/toggles/no-monitor-workspaces", "r")
 M.enabled = flag == nil
 if flag then
   flag:close()
 else
+  record("4.5")
   return
 end
 
@@ -150,3 +175,5 @@ o.rebind("SUPER + mouse_up", "Scroll active workspace backward", hl.dsp.focus({ 
 
 -- SUPER + SHIFT + CTRL + arrows (move window to monitor) arrived with #15655
 -- but doesn't depend on per-monitor numbering, so it stays.
+
+record("classic")

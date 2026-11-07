@@ -32,7 +32,7 @@ It shows what it will change and asks before changing anything; `--yes` skips th
 
 The install script appends a marked block to the end of `~/.config/hypr/hyprland.lua` and adds Setup > Workspaces to `~/.config/omarchy/extensions/omarchy-menu.jsonc` (backing both up first), and replaces the bar's workspace widget. It doesn't change the mode.
 
-The mode is a flag file, `~/.local/state/omarchy/toggles/no-monitor-workspaces`: present means Classic. It is the flag proposed in [omacom/omarchy#16213](https://github.com/omacom/omarchy/pull/16213), so the choice carries over if Omarchy ships that switch, and the Lua part then steps aside.
+The mode is a flag file, `~/.local/state/omarchy/toggles/no-monitor-workspaces`: present means Classic. It is the flag proposed in [omacom/omarchy#16213](https://github.com/omacom/omarchy/pull/16213), so the choice carries over if Omarchy ships that switch, and the Lua part then steps aside. Each config load also records the mode it applied in `~/.local/state/omarchy/classic-workspaces/applied`, and the bar, the menu and `bin/mode status` go by that: if Hyprland didn't follow the flag (an error in the config, or an Omarchy switch that reads it elsewhere), they show the mode that is running, and `bin/mode` puts the flag back and says so.
 
 ## Remove
 
@@ -42,6 +42,8 @@ omarchy plugin remove io.github.fabiopbarbieri.classic-workspaces
 ```
 
 Run `uninstall` first: it switches to 4.5 Workspaces, removes the block from `hyprland.lua` and the menu entries, and brings back `omarchy.workspaces`.
+
+After updating the plugin, run `install` again: it replaces menu entries from an older version (backing the menu up first).
 
 ## Requirements
 
