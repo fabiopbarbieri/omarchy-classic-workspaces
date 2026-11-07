@@ -26,8 +26,19 @@ BarWidget {
     watchChanges: true
     printErrors: false
     onFileChanged: reload()
-    onLoaded: root.perMonitorWorkspaces = false
-    onLoadFailed: root.perMonitorWorkspaces = true
+    onLoaded: root.setPerMonitor(false)
+    onLoadFailed: root.setPerMonitor(true)
+  }
+
+  // Switching modes renumbers workspaces, and Quickshell can keep the old
+  // numbers around, so ask Hyprland for the current list.
+  function setPerMonitor(value) {
+    var changed = root.perMonitorWorkspaces !== value
+    root.perMonitorWorkspaces = value
+    if (changed) {
+      Hyprland.refreshMonitors()
+      Hyprland.refreshWorkspaces()
+    }
   }
 
   readonly property var monitor: {
@@ -119,6 +130,10 @@ BarWidget {
     for (var i = 0; i < values.length; i++) {
       var id = values[i].id
       if (id <= 0) continue
+      // Classic shows 1-10 only, as Omarchy 4.0.6 did. Ids above ten are left
+      // over from per-monitor blocks, or stale entries Quickshell keeps after a
+      // workspace changes number.
+      if (!root.perMonitorWorkspaces && id > root.slots) continue
       if (!root.perMonitorWorkspaces || root.blockOf(id) === root.block) {
         if (ids.indexOf(id) === -1) ids.push(id)
       } else if (values[i].monitor && values[i].monitor.name === root.monitorName) {
@@ -244,6 +259,8 @@ BarWidget {
       var name = event ? String(event.name) : ""
       if (name === "configreloaded") {
         workspaceScope.reload()
+        Hyprland.refreshMonitors()
+        Hyprland.refreshWorkspaces()
         root.refresh()
       }
       // Quickshell credits every workspace switch to the focused monitor, as
