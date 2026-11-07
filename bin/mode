@@ -26,6 +26,15 @@ set_flag() {
   fi
 }
 
+# Omarchy warps the cursor on every workspace change (warp_on_change_workspace),
+# and switching modes moves workspaces around, so put the cursor back after.
+read -r cursor_x cursor_y < <(hyprctl cursorpos 2>/dev/null | tr -d ',') || true
+
+restore_cursor() {
+  [[ $cursor_x =~ ^-?[0-9]+$ && $cursor_y =~ ^-?[0-9]+$ ]] || return 0
+  hyprctl dispatch "hl.dsp.cursor.move({ x = $cursor_x, y = $cursor_y })" >/dev/null || true
+}
+
 set_flag "$want"
 if ! hyprctl reload >/dev/null; then
   set_flag "$current"
@@ -35,6 +44,10 @@ fi
 
 if [[ $want == classic ]]; then
   hyprctl eval 'if o.workspaces.compact then o.workspaces.compact() end' >/dev/null || true
+fi
+restore_cursor
+
+if [[ $want == classic ]]; then
   omarchy-notification-send -g 󱂬 "Workspaces: Classic"
 else
   omarchy-notification-send -g 󱂬 "Workspaces: 4.5 Workspaces"
