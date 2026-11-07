@@ -329,7 +329,8 @@ check(ids() == "1,2,3,4,5,7", "got " .. ids())
 check(read(state("omarchy/workspace-layouts/7.lua")):match("scrolling"), "7 has 17\x27s layout")
 check(not exists(state("omarchy/workspace-layouts/17.lua")), "17.lua is gone")
 check(read(state("omarchy/workspace-layouts/classic-workspaces-set-aside/7.lua")):match("floating"), "the old 7.lua is set aside")
-check(not exists(state("omarchy/workspace-layouts/1.lua")) and not exists(state("omarchy/workspace-layouts/5.lua")), "1 and 5 now hold other workspaces, so their old layouts are set aside")
+check(not exists(state("omarchy/workspace-layouts/1.lua")), "1 now holds 11\x27s windows, so its old layout is set aside")
+check(read(state("omarchy/workspace-layouts/5.lua")):match("scrolling"), "5 is the third monitor\x27s empty one again, and keeps its layout")
 ' || fail "compact on a real desktop's state moves every layout (live workspace objects)"
 pass "compact on a real desktop's state moves every layout (live workspace objects)"
 
@@ -375,3 +376,21 @@ check(read(state("omarchy/workspace-layouts/5.lua")) == "o.workspace_mode({ work
 check(not exists(state("omarchy/workspace-layouts/classic-workspaces-set-aside")), "nothing is set aside")
 ' || fail "a layout survives Classic -> 4.5 -> Classic"
 pass "a layout survives Classic -> 4.5 -> Classic"
+
+# A monitor showing an empty 5 in Classic shows an empty 21 in 4.5 (Omarchy
+# doesn't renumber empty ones), and compact brings it back as 5: it carries no
+# windows, so 5's layout stays.
+run_lua layouts-empty-shown '
+plug("DP-1", 1)
+window("0xa", 1)
+plug("HDMI-A-1", 21)
+write(state("omarchy/workspace-layouts/5.lua"), "o.workspace_mode({ workspace = \"5\", mode = \"scrolling\" })\n")
+write(state("omarchy/workspace-layouts/21.lua"), "o.workspace_mode({ workspace = \"21\", mode = \"dwindle\" })\n")
+classic()
+load_plugin().compact()
+check(shows("HDMI-A-1") <= 10, "21 was renumbered, got " .. shows("HDMI-A-1"))
+check(read(state("omarchy/workspace-layouts/5.lua")):match("scrolling"), "5 keeps its layout")
+check(read(state("omarchy/workspace-layouts/21.lua")):match("dwindle"), "21 keeps its own, for 4.5")
+check(not exists(state("omarchy/workspace-layouts/classic-workspaces-set-aside")), "nothing is set aside")
+' || fail "an empty workspace compact renumbers leaves the layouts alone"
+pass "an empty workspace compact renumbers leaves the layouts alone"

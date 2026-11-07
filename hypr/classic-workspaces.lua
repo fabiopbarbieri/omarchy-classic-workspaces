@@ -170,9 +170,12 @@ end
 function M.compact()
   -- Hyprland's workspace objects are live: after change_id, .id is already
   -- the new number. So take the numbers first.
-  local numbers = {}
+  local numbers, holds_windows = {}, {}
   for _, workspace in ipairs(hl.get_workspaces() or {}) do
-    if not workspace.special and workspace.id > 10 then numbers[#numbers + 1] = workspace.id end
+    if not workspace.special and workspace.id > 10 then
+      numbers[#numbers + 1] = workspace.id
+      holds_windows[workspace.id] = (workspace.windows or 0) > 0
+    end
   end
   table.sort(numbers)
   local moves = {}
@@ -184,7 +187,9 @@ function M.compact()
     for _, id in ipairs(candidates) do
       if not hl.get_workspace(id) then
         hl.dispatch(hl.dsp.workspace.change_id({ workspace = tostring(from), id = id }))
-        if hl.get_workspace(id) then moves[from] = id end
+        -- An empty one is only the number a monitor shows: it takes no layout
+        -- along and leaves the one under its new number.
+        if hl.get_workspace(id) and holds_windows[from] then moves[from] = id end
         break
       end
     end
