@@ -1,0 +1,11 @@
+{
+  "card.title": "ワークスペース",
+  "mode.tooltip": "ワークスペースモード",
+  "mode.classic": "Classic",
+  "mode.onDescription": "オン：全モニター共通のワークスペース 1-10",
+  "mode.offDescription": "オフ：4.5 Workspaces、モニターごとに専用の 1-10",
+  "notify.classic": "ワークスペース：Classic",
+  "notify.perMonitor": "ワークスペース：4.5 Workspaces",
+  "notify.reloadFailed": "Hyprland を再読み込みできませんでした。ワークスペースモードは変更されていません",
+  "notify.notSwitched": "Hyprland が %1 に切り替わりませんでした（hyprctl configerrors を確認してください）。ワークスペースモードは変更されていません"
+}

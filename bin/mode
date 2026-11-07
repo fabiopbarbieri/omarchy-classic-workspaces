@@ -10,6 +10,32 @@ flag="$state/toggles/no-monitor-workspaces"
 # It goes by that rather than the flag, which Hyprland may not have followed.
 applied_file="$state/classic-workspaces/applied"
 
+# Notifications in the language picked under Setup > Language, read the way
+# omarchy-i18n reads it, from the plugin's own catalogs in i18n/: the
+# language, then its base (es-MX to es), then English, then the key.
+i18n="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/i18n"
+language=en
+language_file=${OMARCHY_LANGUAGE_FILE:-${XDG_CONFIG_HOME:-$HOME/.config}/omarchy/language}
+if [[ -f $language_file ]]; then
+  read -r language <"$language_file" || true
+  language=${language//[[:space:]]/}
+  [[ $language =~ ^[a-z]{2,3}(-[A-Za-z]{2})?$ ]] || language=en
+fi
+t() {
+  local key=$1 string="" catalog i
+  shift
+  for catalog in "$i18n/$language.json" "$i18n/${language%%-*}.json" "$i18n/en.json"; do
+    [[ -f $catalog ]] || continue
+    string="$(jq -r --arg key "$key" '.[$key] // empty | strings' "$catalog" 2>/dev/null)" || string=""
+    [[ -n $string ]] && break
+  done
+  [[ -n $string ]] || string=$key
+  for (( i = 1; i <= $#; i++ )); do
+    string=${string//%$i/"${!i}"}
+  done
+  printf '%s' "$string"
+}
+
 applied() {
   local mode=""
   [[ -f $applied_file ]] && read -r mode <"$applied_file"
@@ -74,13 +100,14 @@ wait_applied() {
   return 1
 }
 
+# $1 for the log, in English; $2 for the notification.
 give_up() {
   set_flag "$current"
   rm -f "$applied_file"
   hyprctl reload >/dev/null || true
   restore_cursor
   echo "$1" >&2
-  omarchy-notification-send -g 󱂬 "$1" || true
+  omarchy-notification-send -g 󱂬 "$2" || true
   exit 1
 }
 
@@ -111,8 +138,11 @@ renumbered() {
 
 set_flag "$want"
 rm -f "$applied_file"
-hyprctl reload >/dev/null || give_up "Could not reload Hyprland; workspace mode was not changed"
-wait_applied "$want" || give_up "Hyprland didn't switch to $want (see hyprctl configerrors); workspace mode was not changed"
+[[ $want == classic ]] && want_name=Classic || want_name="4.5 Workspaces"
+hyprctl reload >/dev/null ||
+  give_up "Could not reload Hyprland; workspace mode was not changed" "$(t notify.reloadFailed)"
+wait_applied "$want" ||
+  give_up "Hyprland didn't switch to $want (see hyprctl configerrors); workspace mode was not changed" "$(t notify.notSwitched "$want_name")"
 
 # Saved layouts are named by workspace id. Going to Classic, compact
 # renumbers workspaces 11+ and takes their layouts along; going to 4.5, Omarchy
@@ -131,7 +161,7 @@ fi
 restore_cursor
 
 if [[ $want == classic ]]; then
-  omarchy-notification-send -g 󱂬 "Workspaces: Classic"
+  omarchy-notification-send -g 󱂬 "$(t notify.classic)"
 else
-  omarchy-notification-send -g 󱂬 "Workspaces: 4.5 Workspaces"
+  omarchy-notification-send -g 󱂬 "$(t notify.perMonitor)"
 fi

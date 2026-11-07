@@ -3,5 +3,9 @@
   "mode.tooltip": "Modo de workspaces",
   "mode.classic": "Classic",
   "mode.onDescription": "Ligado: um conjunto global de workspaces 1-10",
-  "mode.offDescription": "Desligado: 4.5 Workspaces, cada monitor tem seus 1-10"
+  "mode.offDescription": "Desligado: 4.5 Workspaces, cada monitor tem seus 1-10",
+  "notify.classic": "Modo de workspaces: Classic",
+  "notify.perMonitor": "Modo de workspaces: 4.5 Workspaces",
+  "notify.reloadFailed": "Não foi possível recarregar o Hyprland; o modo de workspaces não mudou",
+  "notify.notSwitched": "O Hyprland não mudou para %1 (veja hyprctl configerrors); o modo de workspaces não mudou"
 }

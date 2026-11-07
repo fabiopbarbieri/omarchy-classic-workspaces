@@ -1,0 +1,11 @@
+{
+  "card.title": "工作區",
+  "mode.tooltip": "工作區模式",
+  "mode.classic": "Classic",
+  "mode.onDescription": "開啟：所有顯示器共用一組工作區 1-10",
+  "mode.offDescription": "關閉：4.5 Workspaces，每個顯示器有自己的 1-10",
+  "notify.classic": "工作區：Classic",
+  "notify.perMonitor": "工作區：4.5 Workspaces",
+  "notify.reloadFailed": "無法重新載入 Hyprland；工作區模式未變更",
+  "notify.notSwitched": "Hyprland 未切換到 %1（請查看 hyprctl configerrors）；工作區模式未變更"
+}

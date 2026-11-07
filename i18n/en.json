@@ -3,5 +3,9 @@
   "mode.tooltip": "Workspace mode",
   "mode.classic": "Classic",
   "mode.onDescription": "On: one global set of workspaces 1-10",
-  "mode.offDescription": "Off: 4.5 Workspaces, each monitor has its own 1-10"
+  "mode.offDescription": "Off: 4.5 Workspaces, each monitor has its own 1-10",
+  "notify.classic": "Workspaces: Classic",
+  "notify.perMonitor": "Workspaces: 4.5 Workspaces",
+  "notify.reloadFailed": "Could not reload Hyprland; workspace mode was not changed",
+  "notify.notSwitched": "Hyprland didn't switch to %1 (see hyprctl configerrors); workspace mode was not changed"
 }
