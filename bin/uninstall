@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Back to Omarchy 4.5 as shipped: 4.5 Workspaces mode, no block in
+# hyprland.lua, no menu entries, stock bar widget.
+set -euo pipefail
+dir="$(cd "$(dirname "$0")/.." && pwd)"
+id="$(jq -r .id "$dir/manifest.json")"
+stamp="$(date +%s)"
+
+"$dir/bin/mode" 4.5 || true
+for f in "$HOME/.config/hypr/hyprland.lua" "$HOME/.config/omarchy/extensions/omarchy-menu.jsonc"; do
+  [[ -f $f ]] && grep -q "BEGIN $id\$" "$f" || continue
+  cp "$f" "$f.bak.$stamp"
+  sed -i "/BEGIN ${id//./\\.}\$/,/END ${id//./\\.}\$/d" "$f"
+done
+
+omarchy plugin disable "$id" || true
+omarchy plugin enable omarchy.workspaces || true
+hyprctl reload >/dev/null
+hyprctl configerrors

@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "io.github.fabiopbarbieri.classic-workspaces",
+  "name": "Classic Workspaces",
+  "version": "1.0.0",
+  "author": "Fabio Paixao",
+  "license": "MIT",
+  "description": "Switch between Classic (one global set of workspaces 1-10, as in Omarchy 4.0.6) and Omarchy 4.5 per-monitor workspaces, from the bar or the menu.",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "Workspaces.qml"
+  },
+  "barWidget": {
+    "displayName": "Classic Workspaces",
+    "description": "Workspace indicators that follow the Classic or 4.5 Workspaces mode.",
+    "category": "Compositor",
+    "allowMultiple": false
+  },
+  "omarchy": {
+    "clonedFrom": "omarchy.workspaces"
+  }
+}

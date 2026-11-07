@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+# One-time setup, with your consent: appends a marked block to the end of
+# ~/.config/hypr/hyprland.lua and adds Setup > Workspaces to the Omarchy menu
+# (both backed up first), and swaps in the bar widget. The mode stays as it is
+# until you pick one: bin/mode classic | 4.5.
+set -euo pipefail
+dir="$(cd "$(dirname "$0")/.." && pwd)"
+id="$(jq -r .id "$dir/manifest.json")"
+conf="$HOME/.config/hypr/hyprland.lua"
+menu="$HOME/.config/omarchy/extensions/omarchy-menu.jsonc"
+stamp="$(date +%s)"
+
+if ! grep -q "^-- BEGIN $id$" "$conf"; then
+  cp "$conf" "$conf.bak.$stamp"
+  cat >>"$conf" <<LUA
+-- BEGIN $id
+do
+  local path = os.getenv("HOME") .. "/.config/omarchy/plugins/$id/hypr/classic-workspaces.lua"
+  local file = io.open(path, "r")
+  if file then file:close(); dofile(path) end
+end
+-- END $id
+LUA
+fi
+
+if [[ ! -f $menu ]]; then
+  mkdir -p "$(dirname "$menu")"
+  printf '{\n}\n' >"$menu"
+fi
+if ! grep -q "BEGIN $id\$" "$menu"; then
+  cp "$menu" "$menu.bak.$stamp"
+  mode="\$HOME/.config/omarchy/plugins/$id/bin/mode"
+  check='${XDG_STATE_HOME:-$HOME/.local/state}/omarchy/toggles/no-monitor-workspaces'
+  when="[[ -x $mode ]]"
+  entries="  // BEGIN $id
+  \"setup.workspaces\": {\"icon\":\"󱂬\",\"label\":\"Workspaces\",\"when\":\"$when\"},
+  \"setup.workspaces.classic\": {\"icon\":\"󰕰\",\"label\":\"Classic\",\"description\":\"One global set of workspaces 1-10\",\"when\":\"$when\",\"checked\":\"[[ -f $check ]]\",\"action\":\"$mode classic\"},
+  \"setup.workspaces.per-monitor\": {\"icon\":\"󰍹\",\"label\":\"4.5 Workspaces\",\"description\":\"Each monitor has its own workspaces 1-10\",\"when\":\"$when\",\"checked\":\"[[ ! -f $check ]]\",\"action\":\"$mode 4.5\"},
+  // END $id"
+  last=$(grep -n '^}' "$menu" | tail -1 | cut -d: -f1)
+  { head -n $((last - 1)) "$menu"; printf '%s\n' "$entries"; tail -n +"$last" "$menu"; } >"$menu.tmp"
+  mv "$menu.tmp" "$menu"
+fi
+
+hyprctl reload >/dev/null
+hyprctl configerrors
+omarchy-shell shell rescanPlugins >/dev/null
+omarchy plugin enable "$id"
+echo "Installed. Mode: $("$dir/bin/mode" status). Switch in Setup > Workspaces or with: $dir/bin/mode classic|4.5"

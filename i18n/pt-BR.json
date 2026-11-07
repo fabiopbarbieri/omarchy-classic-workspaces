@@ -1,0 +1,7 @@
+{
+  "card.title": "Workspaces",
+  "mode.tooltip": "Modo de workspaces",
+  "mode.classic": "Classic",
+  "mode.onDescription": "Ligado: um conjunto global de workspaces 1-10",
+  "mode.offDescription": "Desligado: 4.5 Workspaces, cada monitor tem seus 1-10"
+}

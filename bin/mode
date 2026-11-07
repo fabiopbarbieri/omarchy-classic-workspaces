@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# Switch workspace mode: mode [classic|4.5|toggle|status]
+#   classic  one global set 1-10, as in Omarchy 4.0.6
+#   4.5      Omarchy 4.5's per-monitor workspaces
+set -euo pipefail
+
+flag="${XDG_STATE_HOME:-$HOME/.local/state}/omarchy/toggles/no-monitor-workspaces"
+current=4.5
+[[ -f $flag ]] && current=classic
+
+case ${1:-toggle} in
+  classic | 4.5) want=$1 ;;
+  toggle) [[ $current == classic ]] && want=4.5 || want=classic ;;
+  status) echo "$current"; exit 0 ;;
+  *) echo "Usage: mode [classic|4.5|toggle|status]" >&2; exit 1 ;;
+esac
+
+[[ $want == "$current" ]] && exit 0
+
+set_flag() {
+  if [[ $1 == classic ]]; then
+    mkdir -p "$(dirname "$flag")"
+    touch "$flag"
+  else
+    rm -f "$flag"
+  fi
+}
+
+set_flag "$want"
+if ! hyprctl reload >/dev/null; then
+  set_flag "$current"
+  echo "Could not reload Hyprland; workspace mode was not changed" >&2
+  exit 1
+fi
+
+if [[ $want == classic ]]; then
+  hyprctl eval 'if o.workspaces.compact then o.workspaces.compact() end' >/dev/null || true
+  omarchy-notification-send -g 󱂬 "Workspaces: Classic"
+else
+  omarchy-notification-send -g 󱂬 "Workspaces: 4.5 Workspaces"
+fi
