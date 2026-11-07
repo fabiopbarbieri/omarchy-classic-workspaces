@@ -52,9 +52,17 @@ local function resolve(id)
   return workspace_numbered(id) or create(id, world.focused)
 end
 
+-- Live, as Hyprland's are: a workspace object reads its current state, so
+-- after change_id its id is the new one.
 local function workspace_object(workspace)
   if not workspace then return nil end
-  return { id = workspace.id, name = tostring(workspace.id), special = workspace.special, windows = windows_on(workspace.id), monitor = { name = workspace.monitor } }
+  return setmetatable({}, { __index = function(_, key)
+    if key == "id" then return workspace.id end
+    if key == "name" then return tostring(workspace.id) end
+    if key == "special" then return workspace.special end
+    if key == "windows" then return windows_on(workspace.id) end
+    if key == "monitor" then return { name = workspace.monitor } end
+  end })
 end
 
 local run = {}

@@ -134,20 +134,23 @@ end
 -- keys. Renumber them into 1-10, keeping their position (13 -> 3) when free.
 -- Run by bin/mode when switching to Classic.
 function M.compact()
-  local list = hl.get_workspaces() or {}
-  table.sort(list, function(a, b) return a.id < b.id end)
-  for _, workspace in ipairs(list) do
-    if not workspace.special and workspace.id > 10 then
-      local candidates = { (workspace.id - 1) % 10 + 1 }
-      for id = 1, 10 do
-        candidates[#candidates + 1] = id
-      end
-      for _, id in ipairs(candidates) do
-        if not hl.get_workspace(id) then
-          hl.dispatch(hl.dsp.workspace.change_id({ workspace = tostring(workspace.id), id = id }))
-          if hl.get_workspace(id) then move_layout(workspace.id, id) end
-          break
-        end
+  -- Hyprland's workspace objects are live: after change_id, .id is already
+  -- the new number. So take the numbers first.
+  local numbers = {}
+  for _, workspace in ipairs(hl.get_workspaces() or {}) do
+    if not workspace.special and workspace.id > 10 then numbers[#numbers + 1] = workspace.id end
+  end
+  table.sort(numbers)
+  for _, from in ipairs(numbers) do
+    local candidates = { (from - 1) % 10 + 1 }
+    for id = 1, 10 do
+      candidates[#candidates + 1] = id
+    end
+    for _, id in ipairs(candidates) do
+      if not hl.get_workspace(id) then
+        hl.dispatch(hl.dsp.workspace.change_id({ workspace = tostring(from), id = id }))
+        if hl.get_workspace(id) then move_layout(from, id) end
+        break
       end
     end
   end

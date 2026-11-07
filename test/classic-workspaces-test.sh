@@ -310,3 +310,25 @@ m.compact()
 check(exists(state("omarchy/workspace-layouts/15.lua")), "a workspace that keeps its number keeps its layout")
 ' || fail "a workspace compact can't renumber keeps its layout"
 pass "a workspace compact can't renumber keeps its layout"
+
+# Found on a real desktop: three monitors back from 4.5 Workspaces, with
+# layouts saved under old and new numbers. Hyprland's workspace objects are
+# live, so compact has to take the numbers before renumbering.
+run_lua layouts-desktop '
+plug("DP-1", 3)
+plug("DP-2", 17)
+plug("HDMI-A-1", 21)
+for id, address in pairs({ [3] = "a", [4] = "b", [11] = "c", [12] = "d", [17] = "e" }) do window(address, id, id < 10 and "DP-1" or "DP-2") end
+for id, mode in pairs({ [1] = "dwindle", [5] = "scrolling", [7] = "floating", [17] = "scrolling" }) do
+  write(state("omarchy/workspace-layouts/" .. id .. ".lua"), "o.workspace_mode({ workspace = \"" .. id .. "\", mode = \"" .. mode .. "\" })\n")
+end
+classic()
+local m = load_plugin()
+m.compact()
+check(ids() == "1,2,3,4,5,7", "got " .. ids())
+check(read(state("omarchy/workspace-layouts/7.lua")):match("scrolling"), "7 has 17\x27s layout")
+check(not exists(state("omarchy/workspace-layouts/17.lua")), "17.lua is gone")
+check(read(state("omarchy/workspace-layouts/classic-workspaces-set-aside/7.lua")):match("floating"), "the old 7.lua is set aside")
+check(not exists(state("omarchy/workspace-layouts/1.lua")) and not exists(state("omarchy/workspace-layouts/5.lua")), "1 and 5 now hold other workspaces, so their old layouts are set aside")
+' || fail "compact on a real desktop's state moves every layout (live workspace objects)"
+pass "compact on a real desktop's state moves every layout (live workspace objects)"
