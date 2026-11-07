@@ -166,6 +166,37 @@ RENUMBER=1 MOVE_LAYOUT=1 "$mode" 4.5
 rm -rf "$XDG_STATE_HOME/omarchy/workspace-layouts"
 pass "going to 4.5, saved layouts follow the workspaces Omarchy renumbered"
 
+language="$tmpdir/language"
+echo pt-BR >"$language"
+: >"$CALLS"
+OMARCHY_LANGUAGE_FILE=$language "$mode" classic
+grep -qF "notify -g 󱂬 Modo de workspaces: Classic" "$CALLS" || fail "the notification follows the picked language" "$(grep notify "$CALLS")"
+"$mode" 4.5
+: >"$CALLS"
+if OMARCHY_LANGUAGE_FILE=$language CONFIG_ERROR=1 "$mode" classic 2>"$tmpdir/stderr"; then fail "a config load that doesn't finish is reported"; fi
+grep -qF "O Hyprland não mudou para Classic" "$CALLS" || fail "the failure is notified in the picked language" "$(grep notify "$CALLS")"
+grep -q "didn't switch to classic" "$tmpdir/stderr" || fail "the log stays in English"
+echo es-MX >"$language"
+: >"$CALLS"
+OMARCHY_LANGUAGE_FILE=$language "$mode" classic
+grep -qF "Espacios de trabajo: Classic" "$CALLS" || fail "es-MX falls back to es" "$(grep notify "$CALLS")"
+"$mode" 4.5
+for code in de '../en' ''; do
+  printf '%s\n' "$code" >"$language"
+  : >"$CALLS"
+  OMARCHY_LANGUAGE_FILE=$language "$mode" classic
+  grep -qF "notify -g 󱂬 Workspaces: Classic" "$CALLS" || fail "'$code' falls back to English" "$(grep notify "$CALLS")"
+  "$mode" 4.5
+done
+pass "notifications follow the picked language, with the base language and English as fallbacks"
+
+keys() { jq -r 'keys[]' "$1" | sort; }
+for catalog in "$ROOT"/i18n/*.json; do
+  [[ $(keys "$catalog") == "$(keys "$ROOT/i18n/en.json")" ]] || fail "$(basename "$catalog") has the same strings as en.json" "$(diff <(keys "$ROOT/i18n/en.json") <(keys "$catalog"))"
+  [[ $(jq -r '."notify.notSwitched"' "$catalog") == *%1* ]] || fail "$(basename "$catalog") keeps %1 in notify.notSwitched"
+done
+pass "every catalog carries every string, placeholders included"
+
 XDG_RUNTIME_DIR='' "$mode" classic
 [[ -f $flag ]] || fail "switching works without XDG_RUNTIME_DIR"
 "$mode" 4.5

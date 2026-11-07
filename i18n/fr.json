@@ -1,0 +1,11 @@
+{
+  "card.title": "Espaces de travail",
+  "mode.tooltip": "Mode des espaces de travail",
+  "mode.classic": "Classic",
+  "mode.onDescription": "Activé : un seul ensemble global d'espaces de travail 1-10",
+  "mode.offDescription": "Désactivé : 4.5 Workspaces, chaque écran a ses propres 1-10",
+  "notify.classic": "Espaces de travail : Classic",
+  "notify.perMonitor": "Espaces de travail : 4.5 Workspaces",
+  "notify.reloadFailed": "Impossible de recharger Hyprland ; le mode des espaces de travail n'a pas changé",
+  "notify.notSwitched": "Hyprland n'est pas passé à %1 (voir hyprctl configerrors) ; le mode des espaces de travail n'a pas changé"
+}

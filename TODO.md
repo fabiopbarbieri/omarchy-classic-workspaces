@@ -4,4 +4,4 @@ A known gap can get a test marked `# TODO` in `test/`, which turns into a pass w
 
 ## Later
 
-- `bin/mode`: notifications through `i18n/` instead of fixed English.
+- Setup > Workspaces menu entries (written by `bin/install`) are English only.
