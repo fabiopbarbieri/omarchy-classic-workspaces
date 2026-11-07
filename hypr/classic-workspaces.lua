@@ -3,7 +3,7 @@
 -- they were in Omarchy 4.0.6.
 --
 -- Loaded at the end of ~/.config/hypr/hyprland.lua, after Omarchy's defaults,
--- and switched with bin/toggle. If Omarchy ships its own switch
+-- and switched with bin/mode. If Omarchy ships its own switch
 -- (omacom/omarchy#16213, o.workspaces.enabled), this file steps aside.
 
 -- While bin/mode switches modes, keep the cursor still: the reload makes
@@ -69,9 +69,45 @@ function M.move_to_monitor(direction)
   end, "o.workspaces.move_to_monitor(" .. string.format("%q", direction) .. ")")
 end
 
+-- Saved layouts (Super + L) are files named by workspace id, so a renumbered
+-- workspace takes its file along, and the new number's old file, left by a
+-- workspace that no longer exists, is set aside where Omarchy doesn't load it.
+-- Applied by the reload bin/mode runs when the files change.
+local layouts = paths.state_home .. "/omarchy/workspace-layouts"
+
+local function read_file(path)
+  local file = io.open(path, "r")
+  if not file then return nil end
+  local content = file:read("a")
+  file:close()
+  return content
+end
+
+local function move_layout(from, to)
+  local source = layouts .. "/" .. from .. ".lua"
+  local target = layouts .. "/" .. to .. ".lua"
+  local content = read_file(source)
+  local renamed = content and content:gsub('workspace = "' .. from .. '"', 'workspace = "' .. to .. '"')
+  -- A file that doesn't name its workspace as Omarchy writes it stays put.
+  if content and renamed == content then return end
+
+  if read_file(target) then
+    local aside = layouts .. "/classic-workspaces-set-aside"
+    os.execute("mkdir -p '" .. aside .. "'")
+    os.rename(target, aside .. "/" .. to .. ".lua")
+  end
+  if renamed then
+    local file = io.open(target, "w")
+    if not file then return end
+    file:write(renamed)
+    file:close()
+    os.remove(source)
+  end
+end
+
 -- Workspaces the per-monitor mode numbered 11+ are out of reach of the number
 -- keys. Renumber them into 1-10, keeping their position (13 -> 3) when free.
--- Run by bin/toggle when turning global workspaces on.
+-- Run by bin/mode when switching to Classic.
 function M.compact()
   local list = hl.get_workspaces() or {}
   table.sort(list, function(a, b) return a.id < b.id end)
@@ -84,6 +120,7 @@ function M.compact()
       for _, id in ipairs(candidates) do
         if not hl.get_workspace(id) then
           hl.dispatch(hl.dsp.workspace.change_id({ workspace = tostring(workspace.id), id = id }))
+          if hl.get_workspace(id) then move_layout(workspace.id, id) end
           break
         end
       end

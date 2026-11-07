@@ -55,8 +55,15 @@ if ! hyprctl reload >/dev/null; then
   exit 1
 fi
 
+# Compacting renumbers workspaces 11+ and takes their saved layouts along; the
+# layout files are only applied as the config loads, so reload again if any
+# changed.
+layouts="${XDG_STATE_HOME:-$HOME/.local/state}/omarchy/workspace-layouts"
+list_layouts() { [[ -d $layouts ]] && find "$layouts" -maxdepth 1 -name '*.lua' -printf '%f %s\n' | sort; true; }
 if [[ $want == classic ]]; then
+  before="$(list_layouts)"
   hyprctl eval 'if o.workspaces.compact then o.workspaces.compact() end' >/dev/null || true
+  [[ $(list_layouts) == "$before" ]] || hyprctl reload >/dev/null || true
 fi
 restore_cursor
 

@@ -22,6 +22,12 @@ case $1 in
     [[ $2 == cursor:no_warps ]] && echo '{"bool": false}'
     ;;
   cursorpos) echo "120, 340" ;;
+  eval)
+    # Stands in for compact moving a saved layout.
+    if [[ -n ${MOVE_LAYOUT:-} && $2 == *compact* ]]; then
+      mkdir -p "$XDG_STATE_HOME/omarchy/workspace-layouts"
+      touch "$XDG_STATE_HOME/omarchy/workspace-layouts/3.lua"
+    fi ;;
 esac
 exit 0
 SH
@@ -82,6 +88,17 @@ XDG_STATE_HOME='' "$mode" classic
 [[ -f $HOME/.local/state/omarchy/toggles/no-monitor-workspaces ]] || fail "an empty XDG_STATE_HOME falls back to ~/.local/state"
 XDG_STATE_HOME='' "$mode" 4.5
 pass "an empty XDG_STATE_HOME uses ~/.local/state, as Omarchy's paths.lua does"
+
+: >"$CALLS"
+"$mode" classic
+[[ $(grep -cx reload "$CALLS") == 1 ]] || fail "no second reload when no layout moved"
+"$mode" 4.5
+: >"$CALLS"
+MOVE_LAYOUT=1 "$mode" classic
+[[ $(grep -cx reload "$CALLS") == 2 ]] || fail "a second reload applies the moved layouts"
+"$mode" 4.5
+rm -rf "$XDG_STATE_HOME/omarchy/workspace-layouts"
+pass "Hyprland reloads again only when compact moved a saved layout"
 
 XDG_RUNTIME_DIR='' "$mode" classic
 [[ -f $flag ]] || fail "switching works without XDG_RUNTIME_DIR"

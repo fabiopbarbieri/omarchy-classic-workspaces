@@ -226,20 +226,69 @@ check(#world.calls == 0, "a second compact changes nothing")
 ' || fail "compact is idempotent"
 pass "compact is idempotent"
 
-# Item C: saved layouts (workspace-layouts/<id>.lua) are keyed by id. When
-# compact renumbers 13 -> 3, 13's saved layout should go with it.
-if run_lua compact-layouts '
+# --- compact and saved layouts (Super + L) ----------------------------------
+
+run_lua layouts-follow '
 plug("DP-1", 1)
 window("0xa", 13)
 write(state("omarchy/workspace-layouts/13.lua"), "o.workspace_mode({ workspace = \"13\", mode = \"scrolling\" })\n")
+write(state("omarchy/workspace-layouts/1.lua"), "o.workspace_mode({ workspace = \"1\", mode = \"dwindle\" })\n")
 classic()
 local m = load_plugin()
 m.compact()
-local moved = read(state("omarchy/workspace-layouts/3.lua")) or ""
-check(moved:match("workspace = \"3\"") and moved:match("scrolling"), "3.lua carries the layout")
+check(read(state("omarchy/workspace-layouts/3.lua")) == "o.workspace_mode({ workspace = \"3\", mode = \"scrolling\" })\n", "3.lua carries 13\x27s layout")
 check(not exists(state("omarchy/workspace-layouts/13.lua")), "13.lua is gone")
-' 2>/dev/null; then
-  pass "compact takes the saved layout along (13.lua -> 3.lua)"
-else
-  todo "compact takes the saved layout along (13.lua -> 3.lua)" "item C in TODO.md"
-fi
+check(read(state("omarchy/workspace-layouts/1.lua")):match("dwindle"), "a workspace that stays keeps its layout")
+' || fail "compact takes the saved layout along (13.lua -> 3.lua)"
+pass "compact takes the saved layout along (13.lua -> 3.lua)"
+
+# The reported case on omacom/omarchy#16213: a stale layout for the new
+# number would float tiled windows.
+run_lua layouts-stale '
+plug("DP-1", 1)
+window("0xa", 13)
+write(state("omarchy/workspace-layouts/3.lua"), "o.workspace_mode({ workspace = \"3\", mode = \"floating\" })\n")
+classic()
+local m = load_plugin()
+m.compact()
+check(not exists(state("omarchy/workspace-layouts/3.lua")), "the stale 3.lua no longer applies")
+check(read(state("omarchy/workspace-layouts/classic-workspaces-set-aside/3.lua")):match("floating"), "it is set aside, not deleted")
+' || fail "a stale layout under the new number is set aside, so 13 keeps the default"
+pass "a stale layout under the new number is set aside, so 13 keeps the default"
+
+run_lua layouts-both '
+plug("DP-1", 1)
+window("0xa", 13)
+write(state("omarchy/workspace-layouts/13.lua"), "o.workspace_mode({ workspace = \"13\", mode = \"scrolling\" })\n")
+write(state("omarchy/workspace-layouts/3.lua"), "o.workspace_mode({ workspace = \"3\", mode = \"floating\" })\n")
+classic()
+local m = load_plugin()
+m.compact()
+check(read(state("omarchy/workspace-layouts/3.lua")):match("scrolling"), "the moving workspace\x27s layout wins")
+check(read(state("omarchy/workspace-layouts/classic-workspaces-set-aside/3.lua")):match("floating"), "the old one is set aside")
+' || fail "with layouts under both numbers, the workspace that moves keeps its own"
+pass "with layouts under both numbers, the workspace that moves keeps its own"
+
+run_lua layouts-unknown '
+plug("DP-1", 1)
+window("0xa", 13)
+write(state("omarchy/workspace-layouts/13.lua"), "-- hand-written\n")
+classic()
+local m = load_plugin()
+m.compact()
+check(read(state("omarchy/workspace-layouts/13.lua")) == "-- hand-written\n", "a file not in Omarchy\x27s format stays put")
+check(not exists(state("omarchy/workspace-layouts/3.lua")), "nothing is made up for 3")
+' || fail "a layout file not written by Omarchy is left alone"
+pass "a layout file not written by Omarchy is left alone"
+
+run_lua layouts-full '
+plug("DP-1", 1)
+for id = 2, 10 do window("0x" .. id, id) end
+window("0xb", 15)
+write(state("omarchy/workspace-layouts/15.lua"), "o.workspace_mode({ workspace = \"15\", mode = \"scrolling\" })\n")
+classic()
+local m = load_plugin()
+m.compact()
+check(exists(state("omarchy/workspace-layouts/15.lua")), "a workspace that keeps its number keeps its layout")
+' || fail "a workspace compact can't renumber keeps its layout"
+pass "a workspace compact can't renumber keeps its layout"
