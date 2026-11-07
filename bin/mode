@@ -30,7 +30,7 @@ set_flag() {
 # cursor on workspace changes and focus. The marker tells the Lua part to turn
 # warping off for this reload; afterwards the user's settings come back and the
 # cursor goes back where it was, in case anything still moved it.
-marker="${XDG_RUNTIME_DIR:-/tmp}/omarchy-classic-workspaces-switching"
+marker="${XDG_RUNTIME_DIR:+$XDG_RUNTIME_DIR/omarchy-classic-workspaces-switching}"
 warp_change="$(hyprctl getoption cursor:warp_on_change_workspace -j 2>/dev/null | jq -r '.int // 1')" || warp_change=1
 no_warps="$(hyprctl getoption cursor:no_warps -j 2>/dev/null | jq -r 'if .bool then "true" else "false" end')" || no_warps=false
 [[ $warp_change =~ ^[0-9]+$ ]] || warp_change=1
@@ -38,13 +38,15 @@ no_warps="$(hyprctl getoption cursor:no_warps -j 2>/dev/null | jq -r 'if .bool t
 read -r cursor_x cursor_y < <(hyprctl cursorpos 2>/dev/null | tr -d ',') || true
 
 restore_cursor() {
-  rm -f "$marker"
+  [[ -n $marker ]] && rm -f "$marker"
   hyprctl eval "hl.config({ cursor = { warp_on_change_workspace = $warp_change, no_warps = $no_warps } })" >/dev/null || true
   [[ $cursor_x =~ ^-?[0-9]+$ && $cursor_y =~ ^-?[0-9]+$ ]] || return 0
   hyprctl dispatch "hl.dsp.cursor.move({ x = $cursor_x, y = $cursor_y })" >/dev/null || true
 }
-trap 'rm -f "$marker"' EXIT
-touch "$marker"
+if [[ -n $marker ]]; then
+  trap 'rm -f "$marker"' EXIT
+  touch "$marker"
+fi
 
 set_flag "$want"
 if ! hyprctl reload >/dev/null; then

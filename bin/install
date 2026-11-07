@@ -3,12 +3,31 @@
 # ~/.config/hypr/hyprland.lua and adds Setup > Workspaces to the Omarchy menu
 # (both backed up first), and swaps in the bar widget. The mode stays as it is
 # until you pick one: bin/mode classic | 4.5.
+#
+# Usage: install [--yes]
 set -euo pipefail
+
+confirm() {
+  [[ ${1:-} == --yes || ${1:-} == -y ]] && return 0
+  if [[ ! -t 0 ]]; then
+    echo "Refusing to change your config without confirmation; run it in a terminal or pass --yes." >&2
+    exit 1
+  fi
+  if command -v gum >/dev/null; then
+    gum confirm "$PROMPT" || exit 0
+  else
+    read -r -p "$PROMPT [y/N] " answer
+    [[ $answer == [yY]* ]] || exit 0
+  fi
+}
 dir="$(cd "$(dirname "$0")/.." && pwd)"
 id="$(jq -r .id "$dir/manifest.json")"
 conf="$HOME/.config/hypr/hyprland.lua"
 menu="$HOME/.config/omarchy/extensions/omarchy-menu.jsonc"
 stamp="$(date +%s)"
+
+PROMPT="Classic Workspaces will add a marked block to the end of $conf and Setup > Workspaces entries to $menu (each backed up first), and replace the bar's workspace widget. Continue?"
+confirm "${1:-}"
 
 if ! grep -q "^-- BEGIN $id$" "$conf"; then
   cp "$conf" "$conf.bak.$stamp"

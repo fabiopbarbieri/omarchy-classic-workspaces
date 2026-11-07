@@ -1,10 +1,29 @@
 #!/usr/bin/env bash
 # Back to Omarchy 4.5 as shipped: 4.5 Workspaces mode, no block in
 # hyprland.lua, no menu entries, stock bar widget.
+#
+# Usage: uninstall [--yes]
 set -euo pipefail
+
+confirm() {
+  [[ ${1:-} == --yes || ${1:-} == -y ]] && return 0
+  if [[ ! -t 0 ]]; then
+    echo "Refusing to change your config without confirmation; run it in a terminal or pass --yes." >&2
+    exit 1
+  fi
+  if command -v gum >/dev/null; then
+    gum confirm "$PROMPT" || exit 0
+  else
+    read -r -p "$PROMPT [y/N] " answer
+    [[ $answer == [yY]* ]] || exit 0
+  fi
+}
 dir="$(cd "$(dirname "$0")/.." && pwd)"
 id="$(jq -r .id "$dir/manifest.json")"
 stamp="$(date +%s)"
+
+PROMPT="Classic Workspaces will switch to 4.5 Workspaces, remove its blocks from ~/.config/hypr/hyprland.lua and ~/.config/omarchy/extensions/omarchy-menu.jsonc (each backed up first), and bring back Omarchy's workspace widget. Continue?"
+confirm "${1:-}"
 
 "$dir/bin/mode" 4.5 || true
 for f in "$HOME/.config/hypr/hyprland.lua" "$HOME/.config/omarchy/extensions/omarchy-menu.jsonc"; do
