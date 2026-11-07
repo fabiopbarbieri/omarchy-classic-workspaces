@@ -6,6 +6,16 @@
 -- and switched with bin/toggle. If Omarchy ships its own switch
 -- (omacom/omarchy#16213, o.workspaces.enabled), this file steps aside.
 
+-- While bin/mode switches modes, keep the cursor still: the reload makes
+-- Omarchy move workspaces between monitors and refocus a window, and both
+-- would warp the cursor. bin/mode puts the user's settings back afterwards.
+local runtime = os.getenv("XDG_RUNTIME_DIR")
+local switching = runtime and io.open(runtime .. "/omarchy-classic-workspaces-switching", "r")
+if switching then
+  switching:close()
+  hl.config({ cursor = { warp_on_change_workspace = 0, no_warps = true } })
+end
+
 local M = o.workspaces
 if not M or M.enabled ~= nil then
   return
