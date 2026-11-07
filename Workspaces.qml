@@ -31,13 +31,14 @@ BarWidget {
   }
 
   // Switching modes renumbers workspaces, and Quickshell can keep the old
-  // numbers around, so ask Hyprland for the current list.
+  // numbers around, so ask Hyprland for the current lists.
   function setPerMonitor(value) {
     var changed = root.perMonitorWorkspaces !== value
     root.perMonitorWorkspaces = value
     if (changed) {
       Hyprland.refreshMonitors()
       Hyprland.refreshWorkspaces()
+      Hyprland.refreshToplevels()
     }
   }
 
@@ -118,6 +119,10 @@ BarWidget {
     return null
   }
 
+  function inUse(workspace) {
+    return workspace.active === true || (workspace.toplevels !== null && workspace.toplevels !== undefined && workspace.toplevels.values.length > 0)
+  }
+
   // Show the first five and any other existing workspaces. In per-monitor mode
   // these are local slots, followed by guests from an unplugged monitor. In
   // global mode every bar shows the same actual ids, including ids above ten.
@@ -130,10 +135,12 @@ BarWidget {
     for (var i = 0; i < values.length; i++) {
       var id = values[i].id
       if (id <= 0) continue
-      // Classic shows 1-10 only, as Omarchy 4.0.6 did. Ids above ten are left
-      // over from per-monitor blocks, or stale entries Quickshell keeps after a
-      // workspace changes number.
-      if (!root.perMonitorWorkspaces && id > root.slots) continue
+      // Classic shows 1-10, as Omarchy 4.0.6 did, and above ten only a
+      // workspace with windows or on a screen: compact leaves one there when
+      // 1-10 are all taken, and rules or scripts can open one. An empty one is
+      // skipped, as Quickshell can keep a stale entry after a workspace
+      // changes number.
+      if (!root.perMonitorWorkspaces && id > root.slots && !root.inUse(values[i])) continue
       if (!root.perMonitorWorkspaces || root.blockOf(id) === root.block) {
         if (ids.indexOf(id) === -1) ids.push(id)
       } else if (values[i].monitor && values[i].monitor.name === root.monitorName) {
@@ -261,6 +268,7 @@ BarWidget {
         workspaceScope.reload()
         Hyprland.refreshMonitors()
         Hyprland.refreshWorkspaces()
+        Hyprland.refreshToplevels()
         root.refresh()
       }
       // Quickshell credits every workspace switch to the focused monitor, as
@@ -274,6 +282,9 @@ BarWidget {
         Hyprland.refreshMonitors()
         Hyprland.refreshWorkspaces()
       }
+      // A renumbered workspace's windows are only moved to the new number in
+      // Quickshell's model by asking again.
+      if (name === "changeworkspaceid") Hyprland.refreshToplevels()
     }
   }
 
