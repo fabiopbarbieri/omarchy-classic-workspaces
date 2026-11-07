@@ -54,6 +54,14 @@ No network access. No sudo or pkexec is required.
 
 The bar reads Omarchy's monitor block file from both its 4.5 location (`~/.local/state/omarchy/monitor-workspaces`) and its later one (`~/.local/state/omarchy/monitors/workspaces`).
 
+## Tests
+
+```sh
+test/run
+```
+
+Needs `lua`, `node` and `jq`; nothing touches the running desktop. The Lua part runs against a small model of Hyprland (`test/fake-hyprland.lua`), and also on top of Omarchy's own `monitor-workspaces.lua` when Omarchy is installed. Known gaps print `# TODO` and are listed in `TODO.md`.
+
 Strings are in `i18n/` (English and Brazilian Portuguese).
 
 MIT licensed. `Workspaces.qml` is Omarchy 4.5's widget with the global-mode change from #16213; Omarchy's copyright notice is kept in `LICENSE`.
