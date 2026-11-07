@@ -28,7 +28,16 @@ omarchy plugin add https://github.com/fabiopbarbieri/omarchy-classic-workspaces
 ~/.config/omarchy/plugins/io.github.fabiopbarbieri.classic-workspaces/bin/install
 ```
 
-It shows what it will change and asks before changing anything; `--yes` skips the question.
+It shows what it will change and asks before changing anything; `--yes` skips the question. It also turns the bar widget on, so the answer to `plugin add`'s "enable?" doesn't matter.
+
+To update:
+
+```sh
+omarchy plugin update io.github.fabiopbarbieri.classic-workspaces
+~/.config/omarchy/plugins/io.github.fabiopbarbieri.classic-workspaces/bin/install
+```
+
+Run `install` again after each update: it replaces menu entries from an older version (backing the menu up first).
 
 The install script appends a marked block to the end of `~/.config/hypr/hyprland.lua` and adds Setup > Workspaces to `~/.config/omarchy/extensions/omarchy-menu.jsonc` (backing both up first), and replaces the bar's workspace widget. It doesn't change the mode.
 
@@ -42,8 +51,6 @@ omarchy plugin remove io.github.fabiopbarbieri.classic-workspaces
 ```
 
 Run `uninstall` first: it switches to 4.5 Workspaces, removes the block from `hyprland.lua` and the menu entries, and brings back `omarchy.workspaces`.
-
-After updating the plugin, run `install` again: it replaces menu entries from an older version (backing the menu up first).
 
 ## Requirements
 
