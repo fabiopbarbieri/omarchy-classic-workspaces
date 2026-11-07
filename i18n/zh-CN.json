@@ -7,5 +7,10 @@
   "notify.classic": "工作区：Classic",
   "notify.perMonitor": "工作区：4.5 Workspaces",
   "notify.reloadFailed": "无法重新加载 Hyprland；工作区模式未更改",
-  "notify.notSwitched": "Hyprland 未切换到 %1（请查看 hyprctl configerrors）；工作区模式未更改"
+  "notify.notSwitched": "Hyprland 未切换到 %1（请查看 hyprctl configerrors）；工作区模式未更改",
+  "menu.workspaces": "工作区",
+  "menu.classic": "Classic",
+  "menu.classicDescription": "所有显示器共用一组工作区 1-10",
+  "menu.perMonitor": "4.5 Workspaces",
+  "menu.perMonitorDescription": "每个显示器有自己的工作区 1-10"
 }
