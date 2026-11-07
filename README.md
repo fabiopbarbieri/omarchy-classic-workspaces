@@ -14,8 +14,8 @@ Pick one from the mode icon at the end of the workspace numbers in the bar (it o
 - Omarchy's per-monitor workspace manager stops renumbering and moving workspaces (`o.workspaces.reconcile` becomes a no-op).
 - The bindings go back to 4.0.6: `Super + 1-0`, `Super + Shift + 1-0`, `Super + Shift + Alt + 1-0`, `Super + Tab` / `Super + Shift + Tab` across all monitors, `Super + Ctrl + Tab` to the previous workspace, `Super + scroll`, and `Super + Shift + Alt + arrows` to move a workspace to another monitor.
 - `o.workspaces.focus(N)` and friends take global ids, for scripts and the keybindings menu.
-- The bar shows the same global ids on every monitor: 1-5 plus any other existing workspace. In 4.5 Workspaces mode it behaves as Omarchy's own widget.
-- Switching to Classic renumbers workspaces numbered 11+ into 1-10 so the number keys reach them. Switching back lets Omarchy renumber them into per-monitor blocks again.
+- The bar shows the same global ids on every monitor: 1-5, any other existing workspace up to 10, and one above 10 only while it holds windows or is on a screen. In 4.5 Workspaces mode it behaves as Omarchy's own widget.
+- Switching to Classic renumbers workspaces numbered 11+ into 1-10 so the number keys reach them (13 becomes 3 when 3 is free). One that doesn't fit, with 1-10 all taken, keeps its number and stays in the bar. A saved layout (`Super + L`) goes along with its workspace; a stale one under the new number is moved to `~/.local/state/omarchy/workspace-layouts/classic-workspaces-set-aside/`. Switching back lets Omarchy renumber them into per-monitor blocks again, and `bin/mode` moves their saved layouts along by following the windows. Nothing set aside is ever overwritten: a second one for the same number is saved as `3.1.lua`, and so on.
 
 `Super + Shift + Ctrl + arrows` (move window to monitor) came with #15655 but does not depend on per-monitor numbering, so it stays. `Ctrl + Alt + Delete` (close all) still lands on the focused monitor's first workspace, since that script ships with Omarchy.
 
@@ -28,11 +28,20 @@ omarchy plugin add https://github.com/fabiopbarbieri/omarchy-classic-workspaces
 ~/.config/omarchy/plugins/io.github.fabiopbarbieri.classic-workspaces/bin/install
 ```
 
-It shows what it will change and asks before changing anything; `--yes` skips the question.
+It shows what it will change and asks before changing anything; `--yes` skips the question. It also turns the bar widget on, so the answer to `plugin add`'s "enable?" doesn't matter.
+
+To update:
+
+```sh
+omarchy plugin update io.github.fabiopbarbieri.classic-workspaces
+~/.config/omarchy/plugins/io.github.fabiopbarbieri.classic-workspaces/bin/install
+```
+
+Run `install` again after each update: it replaces menu entries from an older version (backing the menu up first).
 
 The install script appends a marked block to the end of `~/.config/hypr/hyprland.lua` and adds Setup > Workspaces to `~/.config/omarchy/extensions/omarchy-menu.jsonc` (backing both up first), and replaces the bar's workspace widget. It doesn't change the mode.
 
-The mode is a flag file, `~/.local/state/omarchy/toggles/no-monitor-workspaces`: present means Classic. It is the flag proposed in [omacom/omarchy#16213](https://github.com/omacom/omarchy/pull/16213), so the choice carries over if Omarchy ships that switch, and the Lua part then steps aside.
+The mode is a flag file, `~/.local/state/omarchy/toggles/no-monitor-workspaces`: present means Classic. It is the flag proposed in [omacom/omarchy#16213](https://github.com/omacom/omarchy/pull/16213), so the choice carries over if Omarchy ships that switch, and the Lua part then steps aside. Each config load also records the mode it applied in `~/.local/state/omarchy/classic-workspaces/applied`, and the bar, the menu and `bin/mode status` go by that: if Hyprland didn't follow the flag (an error in the config, or an Omarchy switch that reads it elsewhere), they show the mode that is running, and `bin/mode` puts the flag back and says so.
 
 ## Remove
 
@@ -53,6 +62,14 @@ Run `uninstall` first: it switches to 4.5 Workspaces, removes the block from `hy
 No network access. No sudo or pkexec is required.
 
 The bar reads Omarchy's monitor block file from both its 4.5 location (`~/.local/state/omarchy/monitor-workspaces`) and its later one (`~/.local/state/omarchy/monitors/workspaces`).
+
+## Tests
+
+```sh
+test/run
+```
+
+Needs `lua`, `node` and `jq`; nothing touches the running desktop. The Lua part runs against a small model of Hyprland (`test/fake-hyprland.lua`), and also on top of Omarchy's own `monitor-workspaces.lua` when Omarchy is installed. Known gaps print `# TODO` and are listed in `TODO.md`.
 
 Strings are in `i18n/` (English and Brazilian Portuguese).
 

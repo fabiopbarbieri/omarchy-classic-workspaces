@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Runs every test/*-test.sh. Known gaps print "# TODO" and don't fail the run.
+set -uo pipefail
+dir="$(cd "$(dirname "$0")" && pwd)"
+status=0 todos=0
+for test in "$dir"/*-test.sh; do
+  echo "# $(basename "$test")"
+  output=$(bash "$test" 2>&1) || status=1
+  printf '%s\n' "$output"
+  todos=$((todos + $(grep -c '# TODO' <<<"$output" || true)))
+done
+(( todos )) && echo "# $todos known gap(s) marked TODO; see TODO.md"
+(( status )) && echo "# FAILED" || echo "# all passed"
+exit $status
